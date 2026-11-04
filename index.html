@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pedidos a Pedido - Me Mata Limón</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- BARRA SUPERIOR FIJA -->
+  <header class="main-header">
+    <div class="header-container">
+      <div class="brand-group">
+        <a id="link-logo" href="#">
+          <img id="logo-img" src="logo_principal.jpg" alt="Me Mata Limón Logo" class="brand-logo">
+        </a>
+        <h1 class="header-title">Catálogo A Pedido</h1>
+      </div>
+
+      <!-- BUSCADOR POR NOMBRE EN BARRA SUPERIOR -->
+      <div id="search-container" class="search-box" style="display: none;">
+        <input type="text" id="input-search" placeholder="Buscar por nombre..." oninput="filtrarProductos()">
+        <span class="search-icon">🔍</span>
+      </div>
+      
+      <nav class="nav-links">
+        <button class="nav-btn" onclick="abrirModalInfo('politicas')">Políticas</button>
+        <button class="nav-btn" onclick="abrirModalInfo('contacto')">Contacto</button>
+        <button class="cart-btn" onclick="toggleCarrito()">
+          🛒 Carrito (<span id="cart-count">0</span>)
+        </button>
+      </nav>
+    </div>
+  </header>
+
+  <!-- CONTENEDOR PRINCIPAL CON SCROLL -->
+  <main class="main-content container">
+    <!-- BANNER ESTADO ACTIVO -->
+    <section id="banner-activo" class="banner active-banner" style="display: none;">
+      <h2>¡Hacé tu pedido con el 50% de seña!</h2>
+      <p id="fecha-llegada-text" class="arrival-date"></p>
+      <p class="terms-text">
+        Las señas por encargos de productos cubren gastos operativos y de logística de importación/provisión. En caso de cancelación por parte del cliente antes del despacho del producto, se retendrá un 50% de la seña en concepto de gastos administrativos, restituyendo el saldo restante por el mismo medio de origen.
+      </p>
+      <p class="disclaimer-brand">Nota: La marca o presentación del producto puede diferir levemente a la de la foto ilustrativa.</p>
+    </section>
+
+    <!-- MENSAJE DE SIN RESULTADOS EN BÚSQUEDA -->
+    <div id="no-results-msg" class="no-results" style="display: none;">
+      🔍 No se encontraron productos que coincidan con tu búsqueda.
+    </div>
+
+    <!-- CONTENEDOR DE PRODUCTOS -->
+    <section id="catalogo-grid" class="products-grid" style="display: none;">
+    </section>
+
+    <!-- VISTA ESTADO DESHABILITADO -->
+    <section id="vista-deshabilitada" class="disabled-view" style="display: none;">
+      <div class="disabled-card">
+        <h2>Catálogo a pedido cerrado temporalmente</h2>
+        <p>Apenas ingresen los nuevos productos estaremos avisando por WhatsApp.</p>
+        
+        <div id="countdown-container" class="countdown-box">
+          <h3 id="countdown-title">Próxima apertura estimada:</h3>
+          <div id="timer" class="timer-display">--d --h --m</div>
+        </div>
+
+        <div class="main-store-cta">
+          <p>¿Buscás productos con entrega inmediata?</p>
+          <a id="btn-tienda-principal" href="#" class="btn btn-primary">
+            Visitar Tienda Principal
+          </a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- NOTIFICACIÓN TOAST (AL AGREGAR PRODUCTO) -->
+  <div id="toast-notification" class="toast-notification">
+    ✨ Producto añadido al carrito
+  </div>
+
+  <!-- MODAL DE POLÍTICAS Y CONTACTO -->
+  <div id="modal-info" class="modal" style="display: none;">
+    <div class="modal-content info-modal-content">
+      <span class="close-modal" onclick="cerrarModalInfo()">&times;</span>
+      <h3 id="info-modal-title">Información</h3>
+      <div id="info-modal-body" class="info-body-text">
+        <!-- Se llena dinámicamente -->
+      </div>
+    </div>
+  </div>
+
+  <!-- PANEL / MODAL DEL CARRITO DE COMPRAS -->
+  <div id="modal-carrito" class="modal" style="display: none;">
+    <div class="modal-content cart-modal-content">
+      <span class="close-modal" onclick="cerrarCarrito()">&times;</span>
+      <h3>Tu Pedido / Carrito</h3>
+      
+      <div id="cart-items-list" class="cart-items-container">
+        <!-- Se genera dinámicamente -->
+      </div>
+
+      <div class="cart-summary">
+        <p><strong>Total Productos:</strong> $<span id="cart-total-precio">0</span></p>
+        <p class="sena-highlight"><strong>Total Seña (50%):</strong> $<span id="cart-total-sena">0</span></p>
+      </div>
+
+      <div class="form-group">
+        <label for="cliente-nombre">Ingresá tu Nombre y Apellido:</label>
+        <input type="text" id="cliente-nombre" placeholder="Ej: María Pérez" required>
+      </div>
+
+      <button id="btn-confirmar-whatsapp" class="btn btn-whatsapp" onclick="enviarPedidoWhatsApp()">
+        Enviar Pedido por WhatsApp
+      </button>
+    </div>
+  </div>
+
+  <script>
+    let globalConfig = {};
+    let productosDisponibles = [];
+    let carrito = [];
+    let fechaLlegadaActual = "";
+    let toastTimeout = null;
+
+    // Función aux para evitar problemas de caché con parámetros dinámicos ?t=timestamp
+    function getCacheBuster() {
+      return '?t=' + new Date().getTime();
+    }
+
+    async function cargarSitio() {
+      try {
+        const resConfig = await fetch('config.json' + getCacheBuster(), { cache: 'no-store' });
+        globalConfig = await resConfig.json();
+
+        const logoSrc = globalConfig.logoUrl || "logo_principal.jpg";
+        document.getElementById('logo-img').src = logoSrc;
+        document.getElementById('link-logo').href = globalConfig.sitioPrincipalUrl;
+        document.getElementById('btn-tienda-principal').href = globalConfig.sitioPrincipalUrl;
+
+        if (globalConfig.catalogoHabilitado && globalConfig.proveedorActivo) {
+          await cargarProveedor(globalConfig.proveedorActivo);
+        } else {
+          mostrarModoDeshabilitado();
+        }
+      } catch (e) {
+        console.error("Error cargando configuración:", e);
+        mostrarModoDeshabilitado();
+      }
+    }
+
+    async function cargarProveedor(idProveedor) {
+      try {
+        const resProv = await fetch(`proveedores/${idProveedor}.json` + getCacheBuster(), { cache: 'no-store' });
+        const dataProv = await resProv.json();
+
+        fechaLlegadaActual = dataProv.fechaLlegadaEstimada;
+        productosDisponibles = dataProv.productos || [];
+
+        document.getElementById('fecha-llegada-text').innerText = 
+          `Fecha estimada de llegada: ${dataProv.fechaLlegadaEstimada}`;
+        
+        document.getElementById('banner-activo').style.display = 'block';
+        document.getElementById('search-container').style.display = 'flex';
+        document.getElementById('catalogo-grid').style.display = 'grid';
+
+        renderizarProductos(productosDisponibles);
+      } catch (e) {
+        console.error("Error al cargar proveedor:", e);
+        mostrarModoDeshabilitado();
+      }
+    }
+
+    function renderizarProductos(productos) {
+      const container = document.getElementById('catalogo-grid');
+      const noResultsMsg = document.getElementById('no-results-msg');
+      container.innerHTML = '';
+
+      if (productos.length === 0) {
+        noResultsMsg.style.display = 'block';
+      } else {
+        noResultsMsg.style.display = 'none';
+        productos.forEach(prod => {
+          const sena = prod.precio * 0.5;
+          const card = document.createElement('div');
+          card.className = 'product-card';
+          card.innerHTML = `
+            <img src="${prod.foto}" alt="${prod.nombre}" class="product-img" onerror="this.src='https://via.placeholder.com/300x200?text=Foto+Producto'">
+            <div class="product-info">
+              <h3>${prod.nombre}</h3>
+              <p class="desc">${prod.descripcion}</p>
+              <p class="price">Precio: $${prod.precio.toLocaleString('es-AR')}</p>
+              <p class="sena">Seña 50%: $${sena.toLocaleString('es-AR')}</p>
+              <span class="footnote">Foto ilustrativa (la marca puede diferir)</span>
+              <button class="btn btn-reserve" onclick="agregarAlCarrito('${prod.id}')">
+                Agregar al Carrito
+              </button>
+            </div>
+          `;
+          container.appendChild(card);
+        });
+      }
+    }
+
+    function filtrarProductos() {
+      const query = document.getElementById('input-search').value.toLowerCase().trim();
+      const productosFiltrados = productosDisponibles.filter(prod => 
+        prod.nombre.toLowerCase().includes(query)
+      );
+      renderizarProductos(productosFiltrados);
+    }
+
+    function agregarAlCarrito(idProducto) {
+      const prod = productosDisponibles.find(p => p.id === idProducto);
+      if (!prod) return;
+
+      const itemExistente = carrito.find(item => item.id === idProducto);
+      if (itemExistente) {
+        itemExistente.cantidad++;
+      } else {
+        carrito.push({ ...prod, cantidad: 1 });
+      }
+
+      actualizarCarritoUI();
+      mostrarToast(`" ${prod.nombre} " añadido al carrito`);
+    }
+
+    function mostrarToast(mensaje) {
+      const toast = document.getElementById('toast-notification');
+      toast.innerText = mensaje;
+      toast.classList.add('show');
+
+      if (toastTimeout) clearTimeout(toastTimeout);
+      toastTimeout = setTimeout(() => {
+        toast.classList.remove('show');
+      }, 2500);
+    }
+
+    function cambiarCantidad(idProducto, cambio) {
+      const item = carrito.find(i => i.id === idProducto);
+      if (!item) return;
+
+      item.cantidad += cambio;
+      if (item.cantidad <= 0) {
+        carrito = carrito.filter(i => i.id !== idProducto);
+      }
+
+      actualizarCarritoUI();
+    }
+
+    function actualizarCarritoUI() {
+      const countSpan = document.getElementById('cart-count');
+      const listContainer = document.getElementById('cart-items-list');
+      const totalPrecioSpan = document.getElementById('cart-total-precio');
+      const totalSenaSpan = document.getElementById('cart-total-sena');
+
+      let totalCount = 0;
+      let totalPrecio = 0;
+
+      listContainer.innerHTML = '';
+
+      if (carrito.length === 0) {
+        listContainer.innerHTML = '<p class="empty-cart-msg">El carrito está vacío.</p>';
+      } else {
+        carrito.forEach(item => {
+          totalCount += item.cantidad;
+          totalPrecio += item.precio * item.cantidad;
+
+          const itemEl = document.createElement('div');
+          itemEl.className = 'cart-item-row';
+          itemEl.innerHTML = `
+            <div class="cart-item-details">
+              <strong>${item.nombre}</strong>
+              <small>$${item.precio.toLocaleString('es-AR')} c/u</small>
+            </div>
+            <div class="cart-item-controls">
+              <button class="btn-qty" onclick="cambiarCantidad('${item.id}', -1)">-</button>
+              <span>${item.cantidad}</span>
+              <button class="btn-qty" onclick="cambiarCantidad('${item.id}', 1)">+</button>
+            </div>
+          `;
+          listContainer.appendChild(itemEl);
+        });
+      }
+
+      const totalSena = totalPrecio * 0.5;
+      countSpan.innerText = totalCount;
+      totalPrecioSpan.innerText = totalPrecio.toLocaleString('es-AR');
+      totalSenaSpan.innerText = totalSena.toLocaleString('es-AR');
+    }
+
+    function toggleCarrito() {
+      const modal = document.getElementById('modal-carrito');
+      if (modal.style.display === 'none' || modal.style.display === '') {
+        modal.style.display = 'flex';
+      } else {
+        modal.style.display = 'none';
+      }
+    }
+
+    function cerrarCarrito() {
+      document.getElementById('modal-carrito').style.display = 'none';
+    }
+
+    function abrirModalInfo(tipo) {
+      const modal = document.getElementById('modal-info');
+      const titulo = document.getElementById('info-modal-title');
+      const cuerpo = document.getElementById('info-modal-body');
+
+      if (tipo === 'politicas') {
+        titulo.innerText = "Políticas de Pedido y Cancelación";
+        cuerpo.innerHTML = `
+          <p><strong>1. Reserva y Señas:</strong> Todos los pedidos a catálogo abierto requieren una seña del 50% del importe total para ser confirmados y procesados con los proveedores.</p>
+          <p><strong>2. Gastos de Logística:</strong> Las señas cubren gastos operativos, fletes y logística de importación/provisión nacional.</p>
+          <p><strong>3. Cancelaciones:</strong> En caso de cancelación por parte del cliente antes del despacho del producto, se retendrá un <strong>50% de la seña</strong> en concepto de gastos administrativos, restituyendo el saldo restante por el mismo medio de origen.</p>
+          <p><strong>4. Fotografías e Imágenes:</strong> Las imágenes expuestas son de carácter ilustrativo. La marca, empaque o presentación comercial puede variar levemente según el lote del distribuidor.</p>
+        `;
+      } else if (tipo === 'contacto') {
+        titulo.innerText = "Contacto y Atención al Cliente";
+        cuerpo.innerHTML = `
+          <p><strong>📍 Local / Punto de Retiro:</strong> Km 3, Eldorado, Misiones, Argentina.</p>
+          <p><strong>💬 WhatsApp Directo:</strong> <a href="https://wa.me/${globalConfig.whatsappNumber || '5493751588753'}" target="_blank">+${globalConfig.whatsappNumber || '5493751588753'}</a></p>
+          <p><strong>🌐 Sitio Principal:</strong> <a href="${globalConfig.sitioPrincipalUrl || 'https://mematalimon.com.ar'}" target="_blank">mematalimon.com.ar</a></p>
+          <p><strong>🚚 Envíos:</strong> Moto-mandados locales en Eldorado, Neo Encomiendas dentro de Misiones y Vía Cargo a todo el país.</p>
+        `;
+      }
+
+      modal.style.display = 'flex';
+    }
+
+    function cerrarModalInfo() {
+      document.getElementById('modal-info').style.display = 'none';
+    }
+
+    function enviarPedidoWhatsApp() {
+      if (carrito.length === 0) {
+        alert("Tu carrito está vacío. Agregá al menos un producto.");
+        return;
+      }
+
+      const nombreCliente = document.getElementById('cliente-nombre').value.trim();
+      if (!nombreCliente) {
+        alert("Por favor, ingresá tu nombre para continuar.");
+        return;
+      }
+
+      let totalPrecio = 0;
+      let lineasProductos = "";
+
+      carrito.forEach(item => {
+        const subtotal = item.precio * item.cantidad;
+        totalPrecio += subtotal;
+        lineasProductos += `• ${item.cantidad}x ${item.nombre} ($${subtotal.toLocaleString('es-AR')})
+`;
+      });
+
+      const totalSena = totalPrecio * 0.5;
+
+      const mensaje = `Hola! Quiero encargar los siguientes productos a nombre de *${nombreCliente}*:
+
+${lineasProductos}
+📌 *Total Productos:* $${totalPrecio.toLocaleString('es-AR')}
+💰 *Seña del 50% a transferir:* $${totalSena.toLocaleString('es-AR')}
+📅 *Fecha estimada de llegada:* ${fechaLlegadaActual}`;
+
+      const url = `https://wa.me/${globalConfig.whatsappNumber}?text=${encodeURIComponent(mensaje)}`;
+      window.open(url, '_blank');
+      cerrarCarrito();
+    }
+
+    function mostrarModoDeshabilitado() {
+      document.getElementById('banner-activo').style.display = 'none';
+      document.getElementById('search-container').style.display = 'none';
+      document.getElementById('catalogo-grid').style.display = 'none';
+      document.getElementById('vista-deshabilitada').style.display = 'block';
+
+      evaluarProximaFecha();
+    }
+
+    function evaluarProximaFecha() {
+      const ahora = new Date();
+      const dosMesesLimite = new Date();
+      dosMesesLimite.setMonth(dosMesesLimite.getMonth() + 2);
+
+      let fechaProxima = null;
+
+      if (globalConfig.proximasFechasApertura && globalConfig.proximasFechasApertura.length > 0) {
+        for (let item of globalConfig.proximasFechasApertura) {
+          const f = new Date(item.fecha);
+          if (f > ahora && f <= dosMesesLimite) {
+            fechaProxima = f;
+            document.getElementById('countdown-title').innerText = `${item.etiqueta}:`;
+            break;
+          }
+        }
+      }
+
+      if (fechaProxima) {
+        iniciarContador(fechaProxima);
+      } else {
+        document.getElementById('timer').innerText = "Próximamente";
+      }
+    }
+
+    function iniciarContador(fechaObjetivo) {
+      function actualizar() {
+        const ahora = new Date().getTime();
+        const diferencia = fechaObjetivo.getTime() - ahora;
+
+        if (diferencia <= 0) {
+          document.getElementById('timer').innerText = "Próximamente";
+          return;
+        }
+
+        const dias = Math.floor(diferencia / (1000 * 60 * 60 * 24));
+        const horas = Math.floor((diferencia % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+        const minutos = Math.floor((diferencia % (1000 * 60 * 60)) / (1000 * 60));
+
+        document.getElementById('timer').innerText = `${dias}d ${horas}h ${minutos}m`;
+      }
+
+      actualizar();
+      setInterval(actualizar, 60000);
+    }
+
+    window.onload = cargarSitio;
+  </script>
+</body>
+</html>

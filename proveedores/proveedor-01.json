@@ -1,0 +1,24 @@
+{
+  "proveedorId": "proveedor-01",
+  "nombreProveedor": "joyas",
+  "fechaLlegadaEstimada": "20 al 25 de noviembre",
+  "fechaCierre": "2026-11-25T23:59:59",
+  "productos": [
+    {
+      "id": "joyas-01",
+      "nombre": "Pulsera acero blanco",
+      "descripcion": "8mm - 20cm",
+      "precio": 18500,
+      "foto": "img/joyas-01.jpg",
+      "categoria": "pulseras"
+    },
+    {
+      "id": "joyas-02",
+      "nombre": "Pulsera acero blanco 2",
+      "descripcion": "8mm - 20cm",
+      "precio": 18500,
+      "foto": "img/joyas-02.jpg",
+      "categoria": "pulseras"
+    }
+  ]
+}

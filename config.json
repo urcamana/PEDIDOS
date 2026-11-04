@@ -1,0 +1,14 @@
+{
+  "proveedorActivo": "proveedor-01",
+  "catalogoHabilitado": true,
+  "mensajeAvisoWhatsApp": "Apenas ingresen los productos te avisaremos por WhatsApp.",
+  "whatsappNumber": "5493751588753",
+  "logoUrl": "logo_principal.jpg",
+  "sitioPrincipalUrl": "https://mematalimon.com.ar",
+  "proximasFechasApertura": [
+    {
+      "fecha": "2026-11-20T00:00:00",
+      "etiqueta": "Próximo pedido a proveedor"
+    }
+  ]
+}
