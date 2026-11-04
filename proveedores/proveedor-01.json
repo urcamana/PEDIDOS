@@ -6,11 +6,107 @@
   "productos": [
     {
       "id": "joyas-01",
-      "nombre": "Pulsera acero blanco",
-      "descripcion": "8mm - 20cm",
-      "precio": 18500,
+      "nombre": "Caja de anillos en acero dorado con strass",
+      "descripcion": "Caja x36 unidades, medidas surtidas sin elección",
+      "precio": 54000,
       "foto": "img/joyas-01.jpg",
-      "categoria": "pulseras"
+      "categoria": "Anillos"
+    },
+{
+      "id": "joyas-02",
+      "nombre": "Caja de anillos en acero quirurgico con strass",
+      "descripcion": "Caja x36 unidades, medidas surtidas sin elección",
+      "precio": 45000,
+      "foto": "img/joyas-02.jpg",
+      "categoria": "Anillos"
+    },
+{
+      "id": "joyas-03",
+      "nombre": "Caja alianzas facetadas en acero dorado",
+      "descripcion": "Caja x12 unidades, medidas surtidas sin elección",
+      "precio": 23000,
+      "foto": "img/joyas-03.jpg",
+      "categoria": "Anillos"
+    },
+{
+      "id": "joyas-04",
+      "nombre": "Caja de alianzas 2mm en acero dorado",
+      "descripcion": "Caja x36 unidades, medidas surtidas sin elección",
+      "precio": 12000,
+      "foto": "img/joyas-04.jpg",
+      "categoria": "Anillos"
+    },
+{
+      "id": "joyas-05",
+      "nombre": "Caja de alianzas 6mm en acero dorado",
+      "descripcion": "Caja x36 unidades, medidas surtidas sin elección",
+      "precio": 12000,
+      "foto": "img/joyas-05.jpg",
+      "categoria": "Anillos"
+    },
+{
+      "id": "joyas-06",
+      "nombre": "Caja de alianzas 2mm en acero quirurgico",
+      "descripcion": "Caja x36 unidades, medidas surtidas sin elección",
+      "precio": 10000,
+      "foto": "img/joyas-06.jpg",
+      "categoria": "Anillos"
+    },
+{
+      "id": "joyas-07",
+      "nombre": "Caja de alianzas 6mm en acero quirurgico",
+      "descripcion": "Caja x36 unidades, medidas surtidas sin elección",
+      "precio": 10000,
+      "foto": "img/joyas-07.jpg",
+      "categoria": "Anillos"
+    },
+{
+      "id": "joyas-08",
+      "nombre": "Caja de anillos con strass en acero quirurgico",
+      "descripcion": "Caja x36 unidades, medidas surtidas sin elección",
+      "precio": 52000,
+      "foto": "img/joyas-08.jpg",
+      "categoria": "Anillos"
+    },
+{
+      "id": "joyas-09",
+      "nombre": "Caja de anillos con strass negro y blanco en acero dorado",
+      "descripcion": "Caja x36 unidades, medidas surtidas sin elección",
+      "precio": 59000,
+      "foto": "img/joyas-09.jpg",
+      "categoria": "Anillos"
+    },
+{
+      "id": "joyas-10",
+      "nombre": "Caja de anillos acrilicos inflados en color plateado y dorado",
+      "descripcion": "Caja x36 unidades, medidas surtidas sin elección",
+      "precio": 38000,
+      "foto": "img/joyas-10.jpg",
+      "categoria": "Anillos"
+    },
+{
+      "id": "joyas-11",
+      "nombre": "Argollas facetadas en acero dorado x12 unidades",
+      "descripcion": "Blister x12 unidades",
+      "precio": 20000,
+      "foto": "img/joyas-11.jpg",
+      "categoria": "Aros"
+    },
+{
+      "id": "joyas-12",
+      "nombre": "Caja de aros abridores bola de acero dorado",
+      "descripcion": "Caja x12 unidades, medidas surtidas sin elección",
+      "precio": 13000,
+      "foto": "img/joyas-12.jpg",
+      "categoria": "Aros"
+    },
+{
+      "id": "joyas-13",
+      "nombre": "Argollas en acero dorado x12 unidades",
+      "descripcion": "Blister x12 unidades, medidas surtidas sin elección",
+      "precio": 16000,
+      "foto": "img/joyas-13.jpg",
+      "categoria": "Aros"
     },
     {
       "id": "joyas-02",
