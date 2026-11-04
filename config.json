@@ -1,7 +1,7 @@
 {
   "proveedorActivo": "proveedor-01",
   "catalogoHabilitado": false,
-  "mensajeAvisoWhatsApp": "Apenas ingresen los productos te avisaremos por WhatsApp.",
+  "mensajeAvisoWhatsApp": "Apenas tengamos novedades avisaremos por WhatsApp.",
   "whatsappNumber": "5493751588753",
   "logoUrl": "logo_principal.jpg",
   "sitioPrincipalUrl": "https://mematalimon.com.ar",
