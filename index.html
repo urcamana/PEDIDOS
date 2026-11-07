@@ -52,11 +52,13 @@
       <p id="fecha-cierre-text" class="cierre-date" style="display: none;"></p>
       <p class="terms-text">
         Las señas cubren gastos operativos y de logística de importación/provisión.
-        <strong>Cancelación antes del despacho:</strong> en productos de línea general se retiene el <strong>50% de la seña</strong>
-        (gastos administrativos) y se restituye el saldo restante por el mismo medio de origen.
-        En <strong>productos originales o importados</strong> la retención es del <strong>100% de la seña</strong>,
-        por los mayores costos de reserva al importador, gestiones y envíos internacionales.
-        Al enviar el pedido por WhatsApp aceptás estos términos; te enviaremos un mensaje de confirmación para que respondas aceptando.
+        <strong>Si cancelás antes del despacho:</strong>
+        en productos de línea general se retiene el <strong>50% de la seña</strong> y se devuelve el resto por el mismo medio de origen;
+        en <strong>productos originales, importados o combos</strong> (por ejemplo packs de varias unidades) se retiene el <strong>100% de la seña</strong>,
+        por los costos de reserva, gestión y envíos.
+        <strong>Si la cancelación es por nuestra exclusiva responsabilidad</strong> (por ejemplo, el proveedor no envía o cancela el pedido),
+        te devolvemos el <strong>100% de la seña</strong> por el mismo medio en que la recibimos.
+        Al enviar el pedido por WhatsApp aceptás estos términos; te mandaremos un mensaje de confirmación para que respondas aceptando.
       </p>
       <p class="disclaimer-brand">Nota: Las fotos son ilustrativas. Cualquier duda consultanos por WhatsApp.</p>
     </section>
@@ -134,7 +136,7 @@
 
       <label class="acepto-terminos">
         <input type="checkbox" id="check-terminos">
-        <span>Leí y acepto las políticas de seña y cancelación (50% en línea general; <strong>100% de la seña</strong> en productos originales/importados si cancelo antes del despacho).</span>
+        <span>Leí y acepto las políticas de seña y cancelación: retención del 50% en línea general; <strong>100% de la seña</strong> en originales, importados o combos si cancelo antes del despacho; y devolución del 100% si la cancelación es por exclusiva responsabilidad de la tienda.</span>
       </label>
 
       <button id="btn-confirmar-whatsapp" class="btn btn-whatsapp" onclick="enviarPedidoWhatsApp()">
@@ -580,10 +582,11 @@
         cuerpo.innerHTML = `
           <p><strong>1. Reserva y seña:</strong> Los pedidos del catálogo a pedido requieren una seña del <strong>50% del total</strong> para reservar y gestionar la compra con el proveedor o importador.</p>
           <p><strong>2. Qué cubre la seña:</strong> Gastos operativos, administrativos, fletes y logística de provisión o importación. No es un simple anticipo reembolsable al 100% en todos los casos.</p>
-          <p><strong>3. Cancelación antes del despacho — productos de línea general:</strong> Se retiene el <strong>50% de la seña</strong> en concepto de gastos administrativos. El <strong>50% restante</strong> se restituye por el mismo medio de pago de origen.</p>
-          <p><strong>4. Cancelación antes del despacho — productos originales o importados:</strong> Se retiene el <strong>100% de la seña</strong>. Estos artículos implican reserva formal ante el importador, costos de gestión, posibles anticipos en origen y envíos internacionales; por eso la seña no se reintegra si el cliente cancela antes del despacho.</p>
-          <p><strong>5. Confirmación de términos:</strong> Al enviar el pedido por WhatsApp, el cliente declara conocer estas condiciones. Luego recibirá un mensaje de confirmación al que deberá responder aceptando los términos para que el pedido quede firmemente registrado.</p>
-          <p><strong>6. Fotografías:</strong> Las imágenes son ilustrativas. Ante cualquier duda sobre el producto, consultanos por WhatsApp antes de reservar.</p>
+          <p><strong>3. Cancelación por el cliente antes del despacho — línea general:</strong> Se retiene el <strong>50% de la seña</strong> en concepto de gastos administrativos. El <strong>50% restante</strong> se restituye por el mismo medio de pago de origen.</p>
+          <p><strong>4. Cancelación por el cliente antes del despacho — originales, importados o combos:</strong> Se retiene el <strong>100% de la seña</strong>. Incluye productos originales/importados y combos o packs (por ejemplo varias unidades). Implican reserva formal, costos de gestión, posibles anticipos y envíos; por eso la seña no se reintegra si el cliente cancela antes del despacho.</p>
+          <p><strong>5. Cancelación por responsabilidad de la tienda:</strong> Si el pedido se cancela por <strong>nuestra exclusiva culpa</strong> (por ejemplo, el proveedor no entrega, cancela o no recibimos la mercadería), devolvemos el <strong>100% de la seña</strong> por el mismo medio en que la recibimos.</p>
+          <p><strong>6. Confirmación de términos:</strong> Al enviar el pedido por WhatsApp, el cliente declara conocer estas condiciones. Luego recibirá un mensaje de confirmación al que deberá responder aceptando los términos para que el pedido quede firmemente registrado.</p>
+          <p><strong>7. Fotografías:</strong> Las imágenes son ilustrativas. Ante cualquier duda sobre el producto, consultanos por WhatsApp antes de reservar.</p>
         `;
       } else if (tipo === 'contacto') {
         titulo.innerText = 'Contacto y Atención al Cliente';
@@ -639,7 +642,7 @@
         '📌 *Total:* $' + totalPrecio.toLocaleString('es-AR') + '\n' +
         '💰 *Seña a transferir (50%):* $' + totalSena.toLocaleString('es-AR') + '\n' +
         '📅 *Llegada estimada:* ' + (fechaLlegadaActual || 'a confirmar') + '\n\n' +
-        'Declaro que leí y acepto las políticas de seña y cancelación: retención del 50% de la seña en productos de línea general, y del *100% de la seña* en productos originales o importados si cancelo antes del despacho.\n\n' +
+        'Declaro que leí y acepto las políticas de seña y cancelación: retención del 50% de la seña en línea general; *100% de la seña* en productos originales, importados o combos si cancelo antes del despacho; y devolución del *100% de la seña* si la cancelación es por exclusiva responsabilidad de la tienda.\n\n' +
         'Entiendo que apenas tengan novedades me van a avisar por WhatsApp.';
 
       const url = 'https://wa.me/' + (globalConfig.whatsappNumber || '5493751588753') + '?text=' + encodeURIComponent(mensaje);
