@@ -1,14 +1,30 @@
 {
-  "proveedorActivo": "proveedor-01",
-  "catalogoHabilitado": false,
-  "mensajeAvisoWhatsApp": "Apenas tengamos novedades avisaremos por WhatsApp.",
   "whatsappNumber": "5493751588753",
   "logoUrl": "logo_principal.jpg",
   "sitioPrincipalUrl": "https://mematalimon.com.ar",
+  "articulosUrl": "https://mematalimon.com.ar/articulos.json",
+  "fotosBaseUrl": "https://mematalimon.com.ar/imgcarrito/",
+  "mensajeAvisoWhatsApp": "Apenas tengamos novedades estaremos avisando por WhatsApp.",
+  "categoriasPedido": [
+    {
+      "categoria": "prov-auriculares",
+      "visible": false,
+      "fechaApertura": "2026-11-07T00:00:00",
+      "fechaCierre": "2026-11-25T23:59:59",
+      "fechaLlegada": "20 al 25 de noviembre"
+    },
+    {
+      "categoria": "prov-joyas",
+      "visible": false,
+      "fechaApertura": "2028-12-01T00:00:00",
+      "fechaCierre": "2026-12-15T23:59:59",
+      "fechaLlegada": "18 al 22 de diciembre"
+    }
+  ],
   "proximasFechasApertura": [
     {
-      "fecha": "2028-11-20T00:00:00",
-      "etiqueta": "Próximo pedido a proveedor"
+      "fecha": "2028-12-01T00:00:00",
+      "etiqueta": "Próximo catálogo a pedido"
     }
   ]
 }

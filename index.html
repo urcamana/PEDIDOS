@@ -51,12 +51,18 @@
       <p id="fecha-llegada-text" class="arrival-date"></p>
       <p id="fecha-cierre-text" class="cierre-date" style="display: none;"></p>
       <p class="terms-text">
-        Las señas por encargos de productos cubren gastos operativos y de logística de importación/provisión. 
-        En caso de cancelación por parte del cliente antes del despacho del producto, se retendrá un 50% de la seña 
-        en concepto de gastos administrativos, restituyendo el saldo restante por el mismo medio de origen.
+        Las señas cubren gastos operativos y de logística de importación/provisión.
+        <strong>Cancelación antes del despacho:</strong> en productos de línea general se retiene el <strong>50% de la seña</strong>
+        (gastos administrativos) y se restituye el saldo restante por el mismo medio de origen.
+        En <strong>productos originales o importados</strong> la retención es del <strong>100% de la seña</strong>,
+        por los mayores costos de reserva al importador, gestiones y envíos internacionales.
+        Al enviar el pedido por WhatsApp aceptás estos términos; te enviaremos un mensaje de confirmación para que respondas aceptando.
       </p>
       <p class="disclaimer-brand">Nota: La marca o presentación del producto puede diferir levemente a la de la foto ilustrativa.</p>
     </section>
+
+    <!-- FILTRO POR CATEGORÍA -->
+    <div id="filtro-categorias" class="filtro-categorias" style="display: none;"></div>
 
     <!-- SIN RESULTADOS DE BÚSQUEDA -->
     <div id="no-results-msg" class="no-results" style="display: none;">
@@ -126,6 +132,11 @@
         <input type="text" id="cliente-nombre" placeholder="Ej: María Pérez" required>
       </div>
 
+      <label class="acepto-terminos">
+        <input type="checkbox" id="check-terminos">
+        <span>Leí y acepto las políticas de seña y cancelación (50% en línea general; <strong>100% de la seña</strong> en productos originales/importados si cancelo antes del despacho).</span>
+      </label>
+
       <button id="btn-confirmar-whatsapp" class="btn btn-whatsapp" onclick="enviarPedidoWhatsApp()">
         Enviar Pedido por WhatsApp
       </button>
@@ -134,14 +145,16 @@
 
   <script>
     let globalConfig = {};
+    let categoriasActivas = []; // configs de categorías abiertas ahora
     let productosDisponibles = [];
     let productosFiltradosActuales = [];
     let carrito = [];
     let fechaLlegadaActual = "";
-    let fechaCierreActual = null;
     let toastTimeout = null;
     let paginaActual = 1;
+    let categoriaActual = 'TODAS';
     const PRODUCTOS_POR_PAGINA = 12;
+    const STOCK_PEDIDO_MAX = -100; // inventario <= -100 = catálogo a pedido
 
     function getCacheBuster() {
       return '?t=' + new Date().getTime();
@@ -156,59 +169,155 @@
       }
     }
 
+    function nombreCategoriaUI(cat) {
+      if (!cat) return 'Otros';
+      // "prov-joyas" → "Joyas"
+      if (cat.toLowerCase().startsWith('prov-')) {
+        const resto = cat.slice(5).replace(/[-_]/g, ' ');
+        return resto.charAt(0).toUpperCase() + resto.slice(1);
+      }
+      return cat;
+    }
+
+    function categoriaEstaAbierta(cfgCat, ahora) {
+      if (!cfgCat || cfgCat.visible !== true) return false;
+      if (cfgCat.fechaApertura) {
+        const a = new Date(cfgCat.fechaApertura);
+        if (!isNaN(a.getTime()) && ahora < a) return false;
+      }
+      if (cfgCat.fechaCierre) {
+        const c = new Date(cfgCat.fechaCierre);
+        if (!isNaN(c.getTime()) && ahora > c) return false;
+      }
+      return true;
+    }
+
+    function obtenerCategoriasAbiertas(config) {
+      const ahora = new Date();
+      const lista = config.categoriasPedido || [];
+      return lista.filter(function (c) {
+        return categoriaEstaAbierta(c, ahora);
+      });
+    }
+
+    function mapearArticulo(art, fotosBase, mapaDetalles) {
+      const id = String(art['Artículo'] != null ? art['Artículo'] : art.Articulo || '');
+      const precio = Number(art.Venta) || 0;
+      const cat = (art.Categoria || '').trim();
+      const desc = (art['Descripción'] || art.Descripcion || '').trim();
+      const marca = (art.Marca || '').trim();
+      const det = (mapaDetalles && mapaDetalles[id]) ? mapaDetalles[id] : null;
+      const infoExtra = det && det.Info ? String(det.Info).trim() : '';
+      let descripcionParts = [];
+      if (marca) descripcionParts.push('Marca: ' + marca);
+      if (infoExtra) descripcionParts.push(infoExtra);
+      return {
+        id: id,
+        nombre: desc || ('Artículo ' + id),
+        descripcion: descripcionParts.join(' · '),
+        precio: precio,
+        categoria: cat,
+        categoriaUI: nombreCategoriaUI(cat),
+        foto: fotosBase + id + '.jpg',
+        inventario: Number(art.Inventario),
+        video: det && det.Video ? det.Video : ''
+      };
+    }
+
     async function cargarSitio() {
       try {
         const resConfig = await fetch('config.json' + getCacheBuster(), { cache: 'no-store' });
         globalConfig = await resConfig.json();
 
-        const logoSrc = globalConfig.logoUrl || "logo_principal.jpg";
+        const logoSrc = globalConfig.logoUrl || 'logo_principal.jpg';
         document.getElementById('logo-img').src = logoSrc;
-        document.getElementById('link-logo').href = globalConfig.sitioPrincipalUrl || "https://mematalimon.com.ar";
-        document.getElementById('btn-tienda-principal').href = globalConfig.sitioPrincipalUrl || "https://mematalimon.com.ar";
+        document.getElementById('link-logo').href = globalConfig.sitioPrincipalUrl || 'https://mematalimon.com.ar';
+        document.getElementById('btn-tienda-principal').href = globalConfig.sitioPrincipalUrl || 'https://mematalimon.com.ar';
 
-        // Mensaje personalizable desde config
-        const msgAviso = globalConfig.mensajeAvisoWhatsApp || "Apenas tengamos novedades estaremos avisando por WhatsApp.";
+        const msgAviso = globalConfig.mensajeAvisoWhatsApp || 'Apenas tengamos novedades estaremos avisando por WhatsApp.';
         const msgEl = document.getElementById('msg-aviso-whatsapp');
         if (msgEl) msgEl.textContent = msgAviso;
 
-        if (globalConfig.catalogoHabilitado && globalConfig.proveedorActivo) {
-          await cargarProveedor(globalConfig.proveedorActivo);
-        } else {
+        categoriasActivas = obtenerCategoriasAbiertas(globalConfig);
+
+        if (categoriasActivas.length === 0) {
           mostrarModoDeshabilitado();
+          return;
         }
+
+        await cargarArticulos();
       } catch (e) {
-        console.error("Error cargando configuración:", e);
+        console.error('Error cargando configuración:', e);
         mostrarModoDeshabilitado();
       }
     }
 
-    async function cargarProveedor(idProveedor) {
+    async function cargarArticulos() {
       try {
-        const resProv = await fetch(`proveedores/${idProveedor}.json` + getCacheBuster(), { cache: 'no-store' });
-        const dataProv = await resProv.json();
+        const urlArt = (globalConfig.articulosUrl || 'https://mematalimon.com.ar/articulos.json') + getCacheBuster();
+        const res = await fetch(urlArt, { cache: 'no-store' });
+        if (!res.ok) throw new Error('No se pudo cargar articulos.json');
+        const articulos = await res.json();
 
-        fechaLlegadaActual = dataProv.fechaLlegadaEstimada || "";
-        productosDisponibles = dataProv.productos || [];
-
-        // Auto-cierre por fechaCierre
-        if (dataProv.fechaCierre) {
-          fechaCierreActual = new Date(dataProv.fechaCierre);
-          const ahora = new Date();
-          if (ahora > fechaCierreActual) {
-            // Ya pasó la fecha de cierre → modo deshabilitado
-            mostrarModoDeshabilitado();
-            return;
+        // detalles.json (Info / Video por artículo) — opcional
+        let mapaDetalles = {};
+        try {
+          const baseDet = (globalConfig.detallesUrl || 'https://mematalimon.com.ar/detalles.json');
+          const resDet = await fetch(baseDet + getCacheBuster(), { cache: 'no-store' });
+          if (resDet.ok) {
+            const detalles = await resDet.json();
+            (detalles || []).forEach(function (d) {
+              const id = String(d['Artículo'] != null ? d['Artículo'] : d.Articulo || '');
+              if (id) mapaDetalles[id] = d;
+            });
           }
+        } catch (errDet) {
+          console.warn('No se pudo cargar detalles.json', errDet);
         }
 
-        document.getElementById('fecha-llegada-text').innerText =
-          `Fecha estimada de llegada: ${dataProv.fechaLlegadaEstimada}`;
+        const fotosBase = globalConfig.fotosBaseUrl || 'https://mematalimon.com.ar/imgcarrito/';
+        const catsPermitidas = new Set(categoriasActivas.map(function (c) { return (c.categoria || '').trim(); }));
 
-        // Mostrar "Último día para encargar" si hay fechaCierre
+        // Solo stock <= -100 y categoría activa en config
+        productosDisponibles = (articulos || [])
+          .map(function (a) { return mapearArticulo(a, fotosBase, mapaDetalles); })
+          .filter(function (p) {
+            if (!(p.inventario <= STOCK_PEDIDO_MAX)) return false;
+            if (!catsPermitidas.has(p.categoria)) return false;
+            return true;
+          });
+
+        productosDisponibles.sort(compararPorCategoriaYNombre);
+
+        // Textos de llegada / cierre (si hay varias categorías abiertas, se combinan)
+        const llegadas = [];
+        const cierres = [];
+        categoriasActivas.forEach(function (c) {
+          if (c.fechaLlegada) {
+            llegadas.push(nombreCategoriaUI(c.categoria) + ': ' + c.fechaLlegada);
+          }
+          if (c.fechaCierre) cierres.push(new Date(c.fechaCierre));
+        });
+
+        if (llegadas.length === 1 && categoriasActivas.length === 1) {
+          fechaLlegadaActual = categoriasActivas[0].fechaLlegada || '';
+          document.getElementById('fecha-llegada-text').innerText =
+            'Fecha estimada de llegada: ' + fechaLlegadaActual;
+        } else if (llegadas.length > 0) {
+          fechaLlegadaActual = llegadas.join(' | ');
+          document.getElementById('fecha-llegada-text').innerText =
+            'Fechas estimadas de llegada — ' + fechaLlegadaActual;
+        } else {
+          fechaLlegadaActual = '';
+          document.getElementById('fecha-llegada-text').innerText = '';
+        }
+
         const cierreEl = document.getElementById('fecha-cierre-text');
-        if (dataProv.fechaCierre) {
+        if (cierres.length > 0) {
+          // Mostrar el cierre más próximo
+          cierres.sort(function (a, b) { return a - b; });
           cierreEl.style.display = 'block';
-          cierreEl.innerText = `Último día para encargar: ${formatearFechaCorta(dataProv.fechaCierre)}`;
+          cierreEl.innerText = 'Último día para encargar: ' + formatearFechaCorta(cierres[0].toISOString());
         } else {
           cierreEl.style.display = 'none';
         }
@@ -219,13 +328,100 @@
         document.getElementById('vista-deshabilitada').style.display = 'none';
         document.body.classList.add('con-busqueda');
 
-        productosFiltradosActuales = [...productosDisponibles];
-        paginaActual = 1;
-        renderizarPagina();
+        categoriaActual = 'TODAS';
+        construirFiltroCategorias();
+        aplicarFiltros();
       } catch (e) {
-        console.error("Error al cargar proveedor:", e);
+        console.error('Error al cargar artículos:', e);
         mostrarModoDeshabilitado();
       }
+    }
+
+    function compararPorCategoriaYNombre(a, b) {
+      const catA = (a.categoriaUI || a.categoria || 'Otros').toLowerCase();
+      const catB = (b.categoriaUI || b.categoria || 'Otros').toLowerCase();
+      if (catA < catB) return -1;
+      if (catA > catB) return 1;
+      const nomA = (a.nombre || '').toLowerCase();
+      const nomB = (b.nombre || '').toLowerCase();
+      if (nomA < nomB) return -1;
+      if (nomA > nomB) return 1;
+      return 0;
+    }
+
+    function obtenerCategorias() {
+      const set = new Set();
+      productosDisponibles.forEach(function (p) {
+        const c = (p.categoriaUI || p.categoria || '').trim();
+        if (c) set.add(c);
+      });
+      return Array.from(set).sort(function (a, b) {
+        return a.toLowerCase().localeCompare(b.toLowerCase(), 'es');
+      });
+    }
+
+    function construirFiltroCategorias() {
+      const cont = document.getElementById('filtro-categorias');
+      if (!cont) return;
+      const cats = obtenerCategorias();
+      if (cats.length <= 1) {
+        cont.style.display = 'none';
+        cont.innerHTML = '';
+        return;
+      }
+      cont.style.display = 'flex';
+      let html = '<button type="button" class="chip-cat activa" data-cat="TODAS" onclick="seleccionarCategoria(\'TODAS\')">Todas</button>';
+      cats.forEach(function (c) {
+        const safe = c.replace(/'/g, "\\'");
+        html += '<button type="button" class="chip-cat" data-cat="' + c.replace(/"/g, '&quot;') + '" onclick="seleccionarCategoria(\'' + safe + '\')">' + c + '</button>';
+      });
+      cont.innerHTML = html;
+    }
+
+    function seleccionarCategoria(cat) {
+      categoriaActual = cat;
+      document.querySelectorAll('.chip-cat').forEach(function (btn) {
+        btn.classList.toggle('activa', btn.getAttribute('data-cat') === cat);
+      });
+      aplicarFiltros();
+    }
+
+    function aplicarFiltros() {
+      const query = (document.getElementById('input-search').value || '').toLowerCase().trim();
+      productosFiltradosActuales = productosDisponibles.filter(function (prod) {
+        if (categoriaActual !== 'TODAS') {
+          const catProd = (prod.categoriaUI || prod.categoria || '').trim();
+          if (catProd !== categoriaActual) return false;
+        }
+        if (!query) return true;
+        const nombre = (prod.nombre || '').toLowerCase();
+        const desc = (prod.descripcion || '').toLowerCase();
+        const cat = (prod.categoriaUI || prod.categoria || '').toLowerCase();
+        return nombre.includes(query) || desc.includes(query) || cat.includes(query);
+      });
+      paginaActual = 1;
+      renderizarPagina();
+    }
+
+    function crearTarjetaProducto(prod) {
+      const sena = Math.round(prod.precio * 0.5);
+      const card = document.createElement('div');
+      card.className = 'product-card';
+      card.innerHTML = `
+        <img src="${prod.foto}" alt="${prod.nombre}" class="product-img" loading="lazy"
+             onerror="this.src='https://via.placeholder.com/300x200?text=Foto+Producto'">
+        <div class="product-info">
+          <h3>${prod.nombre}</h3>
+          <p class="desc">${prod.descripcion || ''}</p>
+          <p class="price">Precio: $${Number(prod.precio).toLocaleString('es-AR')}</p>
+          <p class="sena">Seña 50%: $${sena.toLocaleString('es-AR')}</p>
+          <span class="footnote">Foto ilustrativa (la marca puede diferir)</span>
+          <button class="btn btn-reserve" onclick="agregarAlCarrito('${prod.id}')">
+            Agregar al Carrito
+          </button>
+        </div>
+      `;
+      return card;
     }
 
     function renderizarPagina() {
@@ -252,31 +448,24 @@
       const fin = inicio + PRODUCTOS_POR_PAGINA;
       const productosPagina = productosFiltradosActuales.slice(inicio, fin);
 
-      productosPagina.forEach(prod => {
-        const sena = Math.round(prod.precio * 0.5);
-        const card = document.createElement('div');
-        card.className = 'product-card';
-        card.innerHTML = `
-          <img src="${prod.foto}" alt="${prod.nombre}" class="product-img" loading="lazy"
-               onerror="this.src='https://via.placeholder.com/300x200?text=Foto+Producto'">
-          <div class="product-info">
-            <h3>${prod.nombre}</h3>
-            <p class="desc">${prod.descripcion || ''}</p>
-            <p class="price">Precio: $${Number(prod.precio).toLocaleString('es-AR')}</p>
-            <p class="sena">Seña 50%: $${sena.toLocaleString('es-AR')}</p>
-            <span class="footnote">Foto ilustrativa (la marca puede diferir)</span>
-            <button class="btn btn-reserve" onclick="agregarAlCarrito('${prod.id}')">
-              Agregar al Carrito
-            </button>
-          </div>
-        `;
-        container.appendChild(card);
+      let ultimaCategoria = null;
+      const mostrarHeaders = (categoriaActual === 'TODAS');
+
+      productosPagina.forEach(function (prod) {
+        const cat = (prod.categoriaUI || prod.categoria || 'Otros').trim() || 'Otros';
+        if (mostrarHeaders && cat !== ultimaCategoria) {
+          ultimaCategoria = cat;
+          const header = document.createElement('div');
+          header.className = 'categoria-header';
+          header.innerHTML = '<h3>' + cat + '</h3>';
+          container.appendChild(header);
+        }
+        container.appendChild(crearTarjetaProducto(prod));
       });
 
-      // Paginación
       if (totalPaginas > 1) {
         paginacionEl.style.display = 'flex';
-        document.getElementById('info-pagina').textContent = `Página ${paginaActual} de ${totalPaginas}`;
+        document.getElementById('info-pagina').textContent = 'Página ' + paginaActual + ' de ' + totalPaginas;
         document.getElementById('btn-prev').disabled = paginaActual <= 1;
         document.getElementById('btn-next').disabled = paginaActual >= totalPaginas;
       } else {
@@ -287,7 +476,6 @@
     function cambiarPagina(delta) {
       paginaActual += delta;
       renderizarPagina();
-      // Scroll suave al inicio del catálogo
       const grid = document.getElementById('catalogo-grid');
       if (grid) {
         const top = grid.getBoundingClientRect().top + window.pageYOffset - 90;
@@ -296,52 +484,41 @@
     }
 
     function filtrarProductos() {
-      const query = document.getElementById('input-search').value.toLowerCase().trim();
-      productosFiltradosActuales = productosDisponibles.filter(prod => {
-        const nombre = (prod.nombre || '').toLowerCase();
-        const desc = (prod.descripcion || '').toLowerCase();
-        const cat = (prod.categoria || '').toLowerCase();
-        return nombre.includes(query) || desc.includes(query) || cat.includes(query);
-      });
-      paginaActual = 1;
-      renderizarPagina();
+      aplicarFiltros();
     }
 
     function agregarAlCarrito(idProducto) {
-      const prod = productosDisponibles.find(p => p.id === idProducto);
+      const prod = productosDisponibles.find(function (p) { return p.id === idProducto; });
       if (!prod) return;
 
-      const itemExistente = carrito.find(item => item.id === idProducto);
+      const itemExistente = carrito.find(function (item) { return item.id === idProducto; });
       if (itemExistente) {
         itemExistente.cantidad++;
       } else {
-        carrito.push({ ...prod, cantidad: 1 });
+        carrito.push(Object.assign({}, prod, { cantidad: 1 }));
       }
 
       actualizarCarritoUI();
-      mostrarToast(`"${prod.nombre}" añadido al carrito`);
+      mostrarToast('"' + prod.nombre + '" añadido al carrito');
     }
 
     function mostrarToast(mensaje) {
       const toast = document.getElementById('toast-notification');
       toast.innerText = mensaje;
       toast.classList.add('show');
-
       if (toastTimeout) clearTimeout(toastTimeout);
-      toastTimeout = setTimeout(() => {
+      toastTimeout = setTimeout(function () {
         toast.classList.remove('show');
       }, 2500);
     }
 
     function cambiarCantidad(idProducto, cambio) {
-      const item = carrito.find(i => i.id === idProducto);
+      const item = carrito.find(function (i) { return i.id === idProducto; });
       if (!item) return;
-
       item.cantidad += cambio;
       if (item.cantidad <= 0) {
-        carrito = carrito.filter(i => i.id !== idProducto);
+        carrito = carrito.filter(function (i) { return i.id !== idProducto; });
       }
-
       actualizarCarritoUI();
     }
 
@@ -353,16 +530,14 @@
 
       let totalCount = 0;
       let totalPrecio = 0;
-
       listContainer.innerHTML = '';
 
       if (carrito.length === 0) {
         listContainer.innerHTML = '<p class="empty-cart-msg">El carrito está vacío.</p>';
       } else {
-        carrito.forEach(item => {
+        carrito.forEach(function (item) {
           totalCount += item.cantidad;
           totalPrecio += item.precio * item.cantidad;
-
           const itemEl = document.createElement('div');
           itemEl.className = 'cart-item-row';
           itemEl.innerHTML = `
@@ -401,15 +576,17 @@
       const cuerpo = document.getElementById('info-modal-body');
 
       if (tipo === 'politicas') {
-        titulo.innerText = "Políticas de Pedido y Cancelación";
+        titulo.innerText = 'Políticas de Pedido y Cancelación';
         cuerpo.innerHTML = `
-          <p><strong>1. Reserva y Señas:</strong> Todos los pedidos a catálogo abierto requieren una seña del 50% del importe total para ser confirmados y procesados con los proveedores.</p>
-          <p><strong>2. Gastos de Logística:</strong> Las señas cubren gastos operativos, fletes y logística de importación/provisión nacional.</p>
-          <p><strong>3. Cancelaciones:</strong> En caso de cancelación por parte del cliente antes del despacho del producto, se retendrá un <strong>50% de la seña</strong> en concepto de gastos administrativos, restituyendo el saldo restante por el mismo medio de origen.</p>
-          <p><strong>4. Fotografías e Imágenes:</strong> Las imágenes expuestas son de carácter ilustrativo. La marca, empaque o presentación comercial puede variar levemente según el lote del distribuidor.</p>
+          <p><strong>1. Reserva y seña:</strong> Los pedidos del catálogo a pedido requieren una seña del <strong>50% del total</strong> para reservar y gestionar la compra con el proveedor o importador.</p>
+          <p><strong>2. Qué cubre la seña:</strong> Gastos operativos, administrativos, fletes y logística de provisión o importación. No es un simple anticipo reembolsable al 100% en todos los casos.</p>
+          <p><strong>3. Cancelación antes del despacho — productos de línea general:</strong> Se retiene el <strong>50% de la seña</strong> en concepto de gastos administrativos. El <strong>50% restante</strong> se restituye por el mismo medio de pago de origen.</p>
+          <p><strong>4. Cancelación antes del despacho — productos originales o importados:</strong> Se retiene el <strong>100% de la seña</strong>. Estos artículos implican reserva formal ante el importador, costos de gestión, posibles anticipos en origen y envíos internacionales; por eso la seña no se reintegra si el cliente cancela antes del despacho.</p>
+          <p><strong>5. Confirmación de términos:</strong> Al enviar el pedido por WhatsApp, el cliente declara conocer estas condiciones. Luego recibirá un mensaje de confirmación al que deberá responder aceptando los términos para que el pedido quede firmemente registrado.</p>
+          <p><strong>6. Fotografías:</strong> Las imágenes son ilustrativas. La marca, empaque o presentación puede variar levemente según el lote del proveedor o importador.</p>
         `;
       } else if (tipo === 'contacto') {
-        titulo.innerText = "Contacto y Atención al Cliente";
+        titulo.innerText = 'Contacto y Atención al Cliente';
         cuerpo.innerHTML = `
           <p><strong>📍 Local / Punto de Retiro:</strong> Km 3, Eldorado, Misiones, Argentina.</p>
           <p><strong>💬 WhatsApp Directo:</strong> <a href="https://wa.me/${globalConfig.whatsappNumber || '5493751588753'}" target="_blank">+${globalConfig.whatsappNumber || '5493751588753'}</a></p>
@@ -427,42 +604,45 @@
 
     function enviarPedidoWhatsApp() {
       if (carrito.length === 0) {
-        alert("Tu carrito está vacío. Agregá al menos un producto.");
+        alert('Tu carrito está vacío. Agregá al menos un producto.');
         return;
       }
 
       const nombreCliente = document.getElementById('cliente-nombre').value.trim();
       if (!nombreCliente) {
-        alert("Por favor, ingresá tu nombre y apellido para continuar.");
+        alert('Por favor, ingresá tu nombre y apellido para continuar.');
         document.getElementById('cliente-nombre').focus();
         return;
       }
 
-      let totalPrecio = 0;
-      let lineasProductos = "";
+      const checkTerminos = document.getElementById('check-terminos');
+      if (!checkTerminos || !checkTerminos.checked) {
+        alert('Para continuar debés aceptar las políticas de seña y cancelación.');
+        return;
+      }
 
-      carrito.forEach(item => {
+      let totalPrecio = 0;
+      let lineasProductos = '';
+
+      carrito.forEach(function (item) {
         const subtotal = item.precio * item.cantidad;
         totalPrecio += subtotal;
         const senaItem = Math.round(item.precio * 0.5);
-        const cantidadTxt = item.cantidad > 1 ? ` x${item.cantidad}` : "";
-        lineasProductos += `• ${item.nombre}${cantidadTxt}
-  Precio: $${Number(item.precio).toLocaleString('es-AR')} (Seña 50%: $${senaItem.toLocaleString('es-AR')})
-`;
+        const cantidadTxt = item.cantidad > 1 ? (' x' + item.cantidad) : '';
+        lineasProductos += '• ' + item.nombre + cantidadTxt + '\n  Precio: $' + Number(item.precio).toLocaleString('es-AR') + ' (Seña 50%: $' + senaItem.toLocaleString('es-AR') + ')\n';
       });
 
       const totalSena = Math.round(totalPrecio * 0.5);
 
-      const mensaje = `Hola! Quiero reservar estos productos a nombre de *${nombreCliente}*:
+      const mensaje = 'Hola! Quiero reservar estos productos a nombre de *' + nombreCliente + '*:\n\n' +
+        lineasProductos + '\n' +
+        '📌 *Total:* $' + totalPrecio.toLocaleString('es-AR') + '\n' +
+        '💰 *Seña a transferir (50%):* $' + totalSena.toLocaleString('es-AR') + '\n' +
+        '📅 *Llegada estimada:* ' + (fechaLlegadaActual || 'a confirmar') + '\n\n' +
+        'Declaro que leí y acepto las políticas de seña y cancelación: retención del 50% de la seña en productos de línea general, y del *100% de la seña* en productos originales o importados si cancelo antes del despacho.\n\n' +
+        'Entiendo que apenas tengan novedades me van a avisar por WhatsApp.';
 
-${lineasProductos}
-📌 *Total:* $${totalPrecio.toLocaleString('es-AR')}
-💰 *Seña a transferir (50%):* $${totalSena.toLocaleString('es-AR')}
-📅 *Llegada estimada:* ${fechaLlegadaActual}
-
-Entiendo que apenas tengan novedades me van a avisar por WhatsApp.`;
-
-      const url = `https://wa.me/${globalConfig.whatsappNumber || '5493751588753'}?text=${encodeURIComponent(mensaje)}`;
+      const url = 'https://wa.me/' + (globalConfig.whatsappNumber || '5493751588753') + '?text=' + encodeURIComponent(mensaje);
       window.open(url, '_blank');
       cerrarCarrito();
     }
@@ -472,9 +652,10 @@ Entiendo que apenas tengan novedades me van a avisar por WhatsApp.`;
       document.getElementById('search-container').style.display = 'none';
       document.getElementById('catalogo-grid').style.display = 'none';
       document.getElementById('paginacion').style.display = 'none';
+      const filtro = document.getElementById('filtro-categorias');
+      if (filtro) filtro.style.display = 'none';
       document.getElementById('vista-deshabilitada').style.display = 'block';
       document.body.classList.remove('con-busqueda');
-
       evaluarProximaFecha();
     }
 
@@ -484,19 +665,24 @@ Entiendo que apenas tengan novedades me van a avisar por WhatsApp.`;
       dosMesesLimite.setMonth(dosMesesLimite.getMonth() + 2);
 
       let fechaProxima = null;
-      let etiqueta = "Próxima apertura estimada:";
+      let etiqueta = 'Próxima apertura estimada:';
 
-      if (globalConfig.proximasFechasApertura && globalConfig.proximasFechasApertura.length > 0) {
-        // Ordenar por fecha ascendente y tomar la primera válida
-        const fechasValidas = globalConfig.proximasFechasApertura
-          .map(item => ({ ...item, dateObj: new Date(item.fecha) }))
-          .filter(item => item.dateObj > ahora && item.dateObj <= dosMesesLimite)
-          .sort((a, b) => a.dateObj - b.dateObj);
+      // 1) Fechas de apertura de categorías en config
+      const desdeCategorias = (globalConfig.categoriasPedido || [])
+        .filter(function (c) { return c.visible === true && c.fechaApertura; })
+        .map(function (c) { return { fecha: new Date(c.fechaApertura), etiqueta: 'Apertura ' + nombreCategoriaUI(c.categoria) }; })
+        .filter(function (x) { return x.fecha > ahora && x.fecha <= dosMesesLimite; });
 
-        if (fechasValidas.length > 0) {
-          fechaProxima = fechasValidas[0].dateObj;
-          etiqueta = fechasValidas[0].etiqueta || etiqueta;
-        }
+      // 2) Lista explícita proximasFechasApertura
+      const desdeLista = (globalConfig.proximasFechasApertura || [])
+        .map(function (item) { return { fecha: new Date(item.fecha), etiqueta: item.etiqueta || etiqueta }; })
+        .filter(function (x) { return x.fecha > ahora && x.fecha <= dosMesesLimite; });
+
+      const todas = desdeCategorias.concat(desdeLista).sort(function (a, b) { return a.fecha - b.fecha; });
+
+      if (todas.length > 0) {
+        fechaProxima = todas[0].fecha;
+        etiqueta = todas[0].etiqueta || etiqueta;
       }
 
       document.getElementById('countdown-title').innerText = etiqueta;
@@ -504,7 +690,7 @@ Entiendo que apenas tengan novedades me van a avisar por WhatsApp.`;
       if (fechaProxima) {
         iniciarContador(fechaProxima);
       } else {
-        document.getElementById('timer').innerText = "Próximamente";
+        document.getElementById('timer').innerText = 'Próximamente';
       }
     }
 
@@ -512,25 +698,20 @@ Entiendo que apenas tengan novedades me van a avisar por WhatsApp.`;
       function actualizar() {
         const ahora = new Date().getTime();
         const diferencia = fechaObjetivo.getTime() - ahora;
-
         if (diferencia <= 0) {
-          document.getElementById('timer').innerText = "Próximamente";
+          document.getElementById('timer').innerText = 'Próximamente';
           return;
         }
-
         const dias = Math.floor(diferencia / (1000 * 60 * 60 * 24));
         const horas = Math.floor((diferencia % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
         const minutos = Math.floor((diferencia % (1000 * 60 * 60)) / (1000 * 60));
-
-        document.getElementById('timer').innerText = `${dias}d ${horas}h ${minutos}m`;
+        document.getElementById('timer').innerText = dias + 'd ' + horas + 'h ' + minutos + 'm';
       }
-
       actualizar();
       setInterval(actualizar, 60000);
     }
 
-    // Cerrar modales al hacer clic fuera
-    window.addEventListener('click', function(e) {
+    window.addEventListener('click', function (e) {
       const modalInfo = document.getElementById('modal-info');
       const modalCarrito = document.getElementById('modal-carrito');
       if (e.target === modalInfo) cerrarModalInfo();

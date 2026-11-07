@@ -208,6 +208,52 @@ body {
   background-color: #eee;
 }
 
+/* FILTRO POR CATEGORÍA */
+.filtro-categorias {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+  margin: 0 0 18px;
+  padding: 0 4px;
+}
+
+.chip-cat {
+  border: 1px solid #cbb8e6;
+  background: #fff;
+  color: var(--primary-dark);
+  padding: 7px 14px;
+  border-radius: 20px;
+  font-size: 0.88em;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.chip-cat:hover {
+  background: #f3eefb;
+}
+
+.chip-cat.activa {
+  background: var(--primary-color);
+  border-color: var(--primary-color);
+  color: #fff;
+}
+
+.categoria-header {
+  grid-column: 1 / -1;
+  margin: 8px 0 2px;
+  padding: 6px 4px 2px;
+  border-bottom: 2px solid #e4d7f5;
+}
+
+.categoria-header h3 {
+  margin: 0;
+  font-size: 1.05em;
+  color: var(--primary-dark);
+  text-transform: capitalize;
+}
+
 /* PAGINACIÓN */
 .paginacion {
   display: flex;
@@ -353,6 +399,12 @@ body {
   max-height: 85vh;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
+}
+
+.info-modal-content h3 {
+  flex-shrink: 0;
+  margin-right: 28px;
 }
 
 .info-body-text {
@@ -360,6 +412,12 @@ body {
   line-height: 1.5;
   font-size: 0.95em;
   color: #444;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding-right: 6px;
+  padding-bottom: 8px;
 }
 
 .info-body-text a {
@@ -582,6 +640,27 @@ body {
     gap: 10px;
   }
 
+  .filtro-categorias {
+    gap: 6px;
+    margin-bottom: 12px;
+    justify-content: flex-start;
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 4px;
+  }
+
+  .chip-cat {
+    padding: 6px 12px;
+    font-size: 0.8em;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .categoria-header h3 {
+    font-size: 0.95em;
+  }
+
   .product-img {
     height: 140px;
   }
@@ -666,4 +745,22 @@ body {
     padding: 5px 7px;
     font-size: 0.7em;
   }
+}
+
+
+.acepto-terminos {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 12px 0 4px;
+  font-size: 0.82em;
+  line-height: 1.35;
+  color: #444;
+  cursor: pointer;
+}
+.acepto-terminos input {
+  margin-top: 3px;
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
 }
