@@ -102,6 +102,12 @@
     </section>
   </main>
 
+  <!-- LIGHTBOX ZOOM -->
+  <div id="lightbox-zoom" class="lightbox-zoom" onclick="cerrarLightbox(event)">
+    <button type="button" class="lightbox-close" onclick="cerrarLightbox(event)" aria-label="Cerrar">&times;</button>
+    <img id="lightbox-img" src="" alt="Vista ampliada">
+  </div>
+
   <!-- TOAST -->
   <div id="toast-notification" class="toast-notification">
     ✨ Producto añadido al carrito
@@ -409,9 +415,12 @@
       const sena = Math.round(prod.precio * 0.5);
       const card = document.createElement('div');
       card.className = 'product-card';
+      const fotoSafe = (prod.foto || '').replace(/'/g, "\'");
       card.innerHTML = `
-        <img src="${prod.foto}" alt="${prod.nombre}" class="product-img" loading="lazy"
-             onerror="this.src='https://via.placeholder.com/300x200?text=Foto+Producto'">
+        <div class="product-img-wrap" onclick="abrirLightbox('${fotoSafe}', '${(prod.nombre || '').replace(/'/g, "\'")}')">
+          <img src="${prod.foto}" alt="${prod.nombre}" class="product-img" loading="lazy"
+               onerror="this.src='https://via.placeholder.com/300x200?text=Foto+Producto'">
+        </div>
         <div class="product-info">
           <h3>${prod.nombre}</h3>
           <p class="desc">${prod.descripcion || ''}</p>
@@ -719,6 +728,32 @@
       const modalCarrito = document.getElementById('modal-carrito');
       if (e.target === modalInfo) cerrarModalInfo();
       if (e.target === modalCarrito) cerrarCarrito();
+    });
+
+    function abrirLightbox(src, alt) {
+      const box = document.getElementById('lightbox-zoom');
+      const img = document.getElementById('lightbox-img');
+      if (!box || !img) return;
+      img.src = src;
+      img.alt = alt || 'Vista ampliada';
+      box.classList.add('open');
+      document.body.style.overflow = 'hidden';
+    }
+
+    function cerrarLightbox(e) {
+      if (e) e.stopPropagation();
+      const box = document.getElementById('lightbox-zoom');
+      const img = document.getElementById('lightbox-img');
+      if (!box) return;
+      // Si clickeó la imagen, no cerrar (solo fondo o X)
+      if (e && e.target && e.target.id === 'lightbox-img') return;
+      box.classList.remove('open');
+      if (img) img.src = '';
+      document.body.style.overflow = '';
+    }
+
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') cerrarLightbox();
     });
 
     window.onload = cargarSitio;

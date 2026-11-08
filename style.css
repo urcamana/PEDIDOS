@@ -201,11 +201,22 @@ body {
   flex-direction: column;
 }
 
+.product-img-wrap {
+  width: 100%;
+  height: 200px;
+  background: #f3f0f8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: zoom-in;
+  overflow: hidden;
+}
 .product-img {
   width: 100%;
-  height: 180px;
-  object-fit: cover;
-  background-color: #eee;
+  height: 100%;
+  object-fit: contain;
+  background-color: #f3f0f8;
+  display: block;
 }
 
 /* FILTRO POR CATEGORÍA */
@@ -661,8 +672,8 @@ body {
     font-size: 0.95em;
   }
 
-  .product-img {
-    height: 140px;
+  .product-img-wrap {
+    height: 150px;
   }
 
   .product-info {
@@ -733,8 +744,8 @@ body {
 
 /* Móviles muy chicos */
 @media (max-width: 380px) {
-  .product-img {
-    height: 120px;
+  .product-img-wrap {
+    height: 130px;
   }
 
   .product-info h3 {
@@ -763,4 +774,41 @@ body {
   flex-shrink: 0;
   width: 16px;
   height: 16px;
+}
+
+
+/* Lightbox zoom imagen */
+.lightbox-zoom {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  background: rgba(0,0,0,0.88);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  cursor: zoom-out;
+}
+.lightbox-zoom.open {
+  display: flex;
+}
+.lightbox-zoom img {
+  max-width: min(960px, 96vw);
+  max-height: 90vh;
+  object-fit: contain;
+  border-radius: 8px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+  background: #fff;
+}
+.lightbox-close {
+  position: absolute;
+  top: 12px;
+  right: 18px;
+  color: #fff;
+  font-size: 2rem;
+  line-height: 1;
+  cursor: pointer;
+  background: transparent;
+  border: none;
+  padding: 4px 10px;
 }
