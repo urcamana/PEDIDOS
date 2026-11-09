@@ -10,20 +10,20 @@
       "categoria": "prov-vivo",
       "visible": false,
       "fechaApertura": "2026-11-07T00:00:00",
-      "fechaCierre": "2026-11-25T23:59:59",
-      "fechaLlegada": "20 al 25 de noviembre"
+      "fechaCierre": "2026-11-15T13:00:00",
+      "fechaLlegada": "25 al 30 de noviembre"
     },
     {
       "categoria": "prov-joyas",
-      "visible": false,
-      "fechaApertura": "2028-12-01T00:00:00",
-      "fechaCierre": "2026-12-15T23:59:59",
-      "fechaLlegada": "18 al 22 de diciembre"
+      "visible": true,
+      "fechaApertura": "2028-11-10T10:00:00",
+      "fechaCierre": "2026-11-15T13:00:00",
+      "fechaLlegada": "25 al 30 de noviembre"
     }
   ],
   "proximasFechasApertura": [
     {
-      "fecha": "2028-12-01T00:00:00",
+      "fecha": "2028-11-10T10:00:00",
       "etiqueta": "Próximo catálogo a pedido"
     }
   ]
