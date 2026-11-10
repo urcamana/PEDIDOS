@@ -11,7 +11,14 @@
   <meta property="og:image" content="https://mematalimon.com.ar/IMG/logo_principal.jpg">
   <meta property="og:type" content="website">
   <meta property="og:locale" content="es_AR">
-  <link rel="icon" href="logo_principal.jpg" type="image/jpeg">
+  <link rel="icon" href="icono.png" type="image/png">
+  <link rel="apple-touch-icon" href="icono.png">
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="theme-color" content="#a88cd7">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Pedidos MML">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -759,5 +766,15 @@
 
     window.onload = cargarSitio;
   </script>
+
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', function () {
+      navigator.serviceWorker.register('./sw.js').catch(function (err) {
+        console.warn('SW pedidos no registrado:', err);
+      });
+    });
+  }
+</script>
 </body>
 </html>

@@ -1,0 +1,26 @@
+{
+  "name": "Pedidos - Me Mata Limón",
+  "short_name": "Pedidos MML",
+  "description": "Catálogo a pedido de Me Mata Limón. Reservá con el 50% de seña.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#f9f7fc",
+  "theme_color": "#a88cd7",
+  "lang": "es-AR",
+  "icons": [
+    {
+      "src": "icono.png",
+      "sizes": "500x500",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icono.png",
+      "sizes": "500x500",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}
